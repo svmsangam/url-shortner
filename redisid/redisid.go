@@ -16,6 +16,11 @@ type Generator struct {
 	key    string
 }
 
+// DefaultSeed is the initial counter seed used to ensure the first generated
+// Base62 short code has the desired length. This mirrors the previous value
+// used in cassandra.go (62^6) so that first short codes are 7 chars long.
+const DefaultSeed uint64 = 56800235584
+
 // NewGenerator returns a Generator that uses the provided redis.Cmdable and
 // the default key "global_url_counter".
 func NewGenerator(client redis.Cmdable) *Generator {
@@ -28,6 +33,24 @@ func NewGeneratorWithKey(client redis.Cmdable, key string) *Generator {
 		key = "global_url_counter"
 	}
 	return &Generator{client: client, key: key}
+}
+
+// EnsureSeed ensures the Redis counter key is initialized. If the key does not
+// exist it will be set to seed-1 so that the first INCR returns seed. Passing
+// seed==0 will use DefaultSeed.
+func (g *Generator) EnsureSeed(ctx context.Context, seed uint64) error {
+	if g == nil || g.client == nil {
+		return errors.New("redisid: nil generator or client")
+	}
+	if seed == 0 {
+		seed = DefaultSeed
+	}
+	seedMinusOne := int64(seed - 1)
+	// Use SetNX to set the value only if the key does not exist.
+	if _, err := g.client.SetNX(ctx, g.key, seedMinusOne, 0).Result(); err != nil {
+		return fmt.Errorf("redisid: EnsureSeed SetNX failed: %w", err)
+	}
+	return nil
 }
 
 // NextID atomically increments the counter by 1 (INCR) and returns the new value.
