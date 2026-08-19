@@ -54,25 +54,29 @@ func (s *DB) SaveURL(ctx context.Context, shortCode, longURL, deviceToken string
 	}
 
 	now := time.Now().UTC()
-	batch := s.session.NewBatch(gocql.LoggedBatch)
-	// Attach context if supported by gocql Batch
-	if bc, ok := interface{}(batch).(interface{ WithContext(context.Context) *gocql.Batch }); ok {
-		batch = bc.WithContext(ctx)
-	}
-
-	// Insert into urls (lookup by short code)
-	batch.Query(
+	// 1. Synchronous primary write (Critical Path)
+	err := s.session.Query(
 		`INSERT INTO urlshortener.urls (short_code, long_url, device_token, created_at) VALUES (?, ?, ?, ?)`,
 		shortCode, longURL, deviceToken, now,
-	)
+	).WithContext(ctx).Exec()
 
-	// Insert into device_urls (lookup/count by device token)
-	batch.Query(
-		`INSERT INTO urlshortener.device_urls (device_token, short_code, long_url, created_at) VALUES (?, ?, ?, ?)`,
-		deviceToken, shortCode, longURL, now,
-	)
+	if err != nil {
+		return err // Return immediately if critical write fails
+	}
 
-	return s.session.ExecuteBatch(batch)
+	// 2. Asynchronous secondary write (Non-blocking)
+	go func(stCode, lURL, devToken string, t time.Time) {
+		// Use background context so HTTP request cancellation doesn't kill the write
+		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		_ = s.session.Query(
+			`INSERT INTO urlshortener.device_urls (device_token, short_code, long_url, created_at) VALUES (?, ?, ?, ?)`,
+			devToken, stCode, lURL, t,
+		).WithContext(bgCtx).Exec()
+	}(shortCode, longURL, deviceToken, now)
+
+	return nil
 }
 
 // CreateShortLink generates a numeric ID via Redis, encodes it as Base62 to
@@ -121,6 +125,9 @@ func (db *DB) CreateShortLink(ctx context.Context, gen *redisid.Generator, longU
 	if err := db.SaveURL(ctx, mapping.ShortCode, mapping.LongURL, mapping.DeviceToken); err != nil {
 		return nil, fmt.Errorf("failed to save url mapping: %w", err)
 	}
+
+	// Seed Redis immediately so GET requests never miss
+	_ = gen.SetURL(ctx, mapping.ShortCode, mapping.LongURL, 24*time.Hour)
 
 	return &mapping, nil
 }

@@ -27,8 +27,10 @@ func main() {
 	// Initialize Cassandra session
 	cluster := gocql.NewCluster(strings.Split(cassandraHosts, ",")...)
 	cluster.Keyspace = keyspace
-	cluster.Consistency = gocql.Quorum
-	cluster.ConnectTimeout = 10 * time.Second
+	cluster.Consistency = gocql.LocalOne // Use Quorum instead of LocalOne if multipel-NDC for speed
+	cluster.NumConns = 10                // Increase streams per host (Default: 2)
+	cluster.ConnectTimeout = 5 * time.Second
+	cluster.Timeout = 3 * time.Second
 
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -46,7 +48,12 @@ func main() {
 
 	// Initialize Redis client
 	rdb := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
+		Addr:         redisAddr,
+		PoolSize:     300,             // Scale connection pool for high concurrency
+		MinIdleConns: 50,              // Keep warm connections ready to eliminate handshake delay
+		DialTimeout:  2 * time.Second, // Fail fast if Redis is unresponsive
+		ReadTimeout:  2 * time.Second,
+		WriteTimeout: 2 * time.Second,
 		// You can add Password/DB here if needed via environment variables
 	})
 	// Test Redis connectivity (optional but helpful at startup)
@@ -71,9 +78,9 @@ func main() {
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Start server in background
