@@ -1,5 +1,7 @@
-# Binary outputs
-bin/
-*.exe
+# Local Go workspace file (should not be committed to Git)
+go.work
+go.work.sum
+
+# IDE & Editor files
 .vscode/
 *.json

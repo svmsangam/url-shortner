@@ -1,0 +1,5 @@
+# Binary outputs
+bin/
+*.exe
+.vscode/
+*.json
