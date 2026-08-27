@@ -146,6 +146,30 @@ func (db *DB) GetLongURLByShortCode(ctx context.Context, shortCode string) (stri
 	return longURL, nil
 }
 
+// GetDeviceURLs returns all URL mappings associated with a device token.
+func (db *DB) GetDeviceURLs(ctx context.Context, deviceToken string) ([]DeviceURL, error) {
+	if db == nil || db.session == nil {
+		return nil, fmt.Errorf("db: nil session")
+	}
+
+	urls := make([]DeviceURL, 0)
+	iter := db.session.Query(
+		"SELECT short_code, long_url, created_at FROM device_urls WHERE device_token = ?",
+		deviceToken,
+	).WithContext(ctx).Iter()
+
+	var url DeviceURL
+	for iter.Scan(&url.ShortCode, &url.LongURL, &url.CreatedAt) {
+		urls = append(urls, url)
+		url = DeviceURL{}
+	}
+	if err := iter.Close(); err != nil {
+		return nil, err
+	}
+
+	return urls, nil
+}
+
 // helper wrapper for base62 encoding (kept indirection in case of future change)
 func base64OrBase62Encode(n uint64) string {
 	// existing base62.Encode expects uint64

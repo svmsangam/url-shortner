@@ -24,16 +24,14 @@ func SetupRouter(db *store.DB, gen *redisid.Generator) http.Handler {
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 
-	// Root-level redirect/lookup route. Example: GET /abc123
-	// This must be registered before other more specific routes if needed.
-	r.Get("/{code}", handler.NewGetHandler(db, gen))
-
 	// API route group
 	r.Route("/api", func(r chi.Router) {
 		// POST /api/shorten - create a short url
 		// DeviceTokenMiddleware injects a device token in the request context
-		// (and sets a cookie if needed). NewShortenHandler handles the request.
+		// (and sets a X-DEVICE_TOKEN header if needed). NewShortenHandler handles the request.
 		r.With(devicemw.DeviceTokenMiddleware).Post("/shorten", handler.NewShortenHandler(db, gen))
+		r.With(devicemw.DeviceTokenMiddleware).Get("/{code}", handler.NewGetHandler(db, gen))
+		r.With(devicemw.DeviceTokenMiddleware).Get("/urls", handler.GetDeviceURLs(db))
 	})
 
 	return r

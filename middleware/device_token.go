@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"strings"
 
@@ -54,6 +55,7 @@ func DeviceTokenMiddleware(next http.Handler) http.Handler {
 		headerVal := strings.TrimSpace(r.Header.Get(HeaderDeviceToken))
 
 		if headerVal != "" && isValidUUID(headerVal) {
+			log.Printf("Using existing device token: %s", headerVal)
 			token = headerVal
 		} else {
 			// Generate a new UUID v4 whenever the client sends an invalid or missing value.
@@ -69,7 +71,7 @@ func DeviceTokenMiddleware(next http.Handler) http.Handler {
 			} else {
 				token = u
 			}
-
+			log.Printf("Generated new device token: %s", token)
 			// Return the newly generated token back to client via response header
 			if token != "" {
 				w.Header().Set(HeaderDeviceToken, token)
