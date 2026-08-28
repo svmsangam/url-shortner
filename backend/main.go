@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
 	"url-shortner/redisid"
@@ -18,6 +19,10 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("warning: could not load root .env file; using environment variables and defaults: %v", err)
+	}
+
 	// Configuration from environment with sensible defaults
 	port := getEnv("PORT", "8080")
 	cassandraHosts := getEnv("CASSANDRA_HOSTS", "127.0.0.1")

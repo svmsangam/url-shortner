@@ -23,6 +23,10 @@ func SetupRouter(db *store.DB, gen *redisid.Generator) http.Handler {
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
+	r.Use(devicemw.CORSMiddleware) // CORS middleware to handle cross-origin requests
+
+	// Public short URLs redirect without requiring a device token.
+	r.Get("/{code}", handler.NewRedirectHandler(db, gen))
 
 	// API route group
 	r.Route("/api", func(r chi.Router) {
@@ -30,8 +34,9 @@ func SetupRouter(db *store.DB, gen *redisid.Generator) http.Handler {
 		// DeviceTokenMiddleware injects a device token in the request context
 		// (and sets a X-DEVICE_TOKEN header if needed). NewShortenHandler handles the request.
 		r.With(devicemw.DeviceTokenMiddleware).Post("/shorten", handler.NewShortenHandler(db, gen))
-		r.With(devicemw.DeviceTokenMiddleware).Get("/{code}", handler.NewGetHandler(db, gen))
 		r.With(devicemw.DeviceTokenMiddleware).Get("/urls", handler.GetDeviceURLs(db))
+		r.With(devicemw.DeviceTokenMiddleware).Get("/v1/urls/info/{code}", handler.NewGetHandler(db, gen))
+		r.With(devicemw.DeviceTokenMiddleware).Get("/v1/urls/clicks/{code}", handler.NewGetClickCountHandler(db))
 	})
 
 	return r

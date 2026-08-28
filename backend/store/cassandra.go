@@ -146,6 +146,36 @@ func (db *DB) GetLongURLByShortCode(ctx context.Context, shortCode string) (stri
 	return longURL, nil
 }
 
+// IncrementClickCount atomically increments the click counter for a short code.
+func (db *DB) IncrementClickCount(ctx context.Context, shortCode string) error {
+	if db == nil || db.session == nil {
+		return fmt.Errorf("db: nil session")
+	}
+
+	return db.session.Query(
+		"UPDATE urlshortener.url_clicks SET click_count = click_count + 1 WHERE short_code = ?",
+		shortCode,
+	).WithContext(ctx).Exec()
+}
+
+// GetClickCount returns the click counter for a short code.
+func (db *DB) GetClickCount(ctx context.Context, shortCode string) (int64, error) {
+	if db == nil || db.session == nil {
+		return 0, fmt.Errorf("db: nil session")
+	}
+
+	var clickCount int64
+	err := db.session.Query(
+		"SELECT click_count FROM urlshortener.url_clicks WHERE short_code = ?",
+		shortCode,
+	).WithContext(ctx).Scan(&clickCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return clickCount, nil
+}
+
 // GetDeviceURLs returns all URL mappings associated with a device token.
 func (db *DB) GetDeviceURLs(ctx context.Context, deviceToken string) ([]DeviceURL, error) {
 	if db == nil || db.session == nil {

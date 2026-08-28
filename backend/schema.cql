@@ -23,3 +23,9 @@ CREATE TABLE IF NOT EXISTS urlshortener.device_urls (
     created_at timestamp,
     PRIMARY KEY (device_token, short_code)
 );
+
+CREATE TABLE IF NOT EXISTS urlshortener.url_clicks (
+    short_code text,
+    click_count counter,
+    PRIMARY KEY (short_code)
+);
