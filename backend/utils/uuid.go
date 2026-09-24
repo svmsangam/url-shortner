@@ -1,3 +1,5 @@
+// Package utils contains small shared helpers that do not own application
+// state, including device-token generation.
 package utils
 
 import "github.com/google/uuid"
