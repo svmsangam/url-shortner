@@ -1,3 +1,6 @@
+// Package main exposes the service's HTTP routing composition.
+// Chi keeps transport concerns here while handlers, middleware, and storage
+// packages retain ownership of request policy and persistence behavior.
 package main
 
 import (
@@ -16,6 +19,8 @@ import (
 // and returns the router as an http.Handler. All route definitions live here
 // (not in main).
 func SetupRouter(db *store.DB, gen *redisid.Generator) http.Handler {
+	// Data flow: client request -> common middleware -> device guard (API only)
+	// -> handler -> Redis/Cassandra -> HTTP response or public redirect.
 	r := chi.NewRouter()
 
 	// Common middleware

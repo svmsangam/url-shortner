@@ -1,3 +1,5 @@
+// Package handler contains HTTP entry points for public redirects and API
+// queries; it delegates storage and cache policy to their owning packages.
 package handler
 
 import (
@@ -18,6 +20,8 @@ import (
 
 // NewRedirectHandler returns a public handler that redirects a short code to
 // its stored long URL and records the click asynchronously.
+// Data flow: short-code request -> Base62 validation -> Redis cache/Cassandra
+// lookup -> redirect response, with click counting dispatched in the background.
 func NewRedirectHandler(db *store.DB, gen *redisid.Generator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := chi.URLParam(r, "code")

@@ -1,3 +1,5 @@
+// Package redisid owns Redis-backed short-code ID allocation and the cache
+// primitives used by handlers and the Cassandra repository.
 package redisid
 
 import (
@@ -55,6 +57,8 @@ func (g *Generator) EnsureSeed(ctx context.Context, seed uint64) error {
 
 // NextID atomically increments the counter by 1 (INCR) and returns the new value.
 // Context is forwarded to the underlying Redis command.
+// Atomic Redis increments provide a process-safe global sequence when multiple
+// HTTP requests or service instances create links concurrently.
 func (g *Generator) NextID(ctx context.Context) (uint64, error) {
 	if g == nil || g.client == nil {
 		return 0, errors.New("redisid: nil generator or client")

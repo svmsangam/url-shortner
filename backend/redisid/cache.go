@@ -1,3 +1,5 @@
+// Package redisid owns Redis-backed short-code ID allocation and the cache
+// primitives used by handlers and the Cassandra repository.
 package redisid
 
 import (
@@ -17,9 +19,11 @@ func (g *Generator) cacheKey(code string) string {
 
 // GetURL fetches the long URL associated with the provided short code from Redis.
 // Returns ("", nil) when the key is not present.
+// The empty result is deliberately a cache miss so callers can fall back to
+// Cassandra without coupling the cache layer to repository behavior.
 func (g *Generator) GetURL(ctx context.Context, code string) (string, error) {
 	if g == nil || g.client == nil {
-			return "", errors.New("redisid: nil generator or client")
+		return "", errors.New("redisid: nil generator or client")
 	}
 	val, err := g.client.Get(ctx, g.cacheKey(code)).Result()
 	if err == redis.Nil {
@@ -35,7 +39,7 @@ func (g *Generator) GetURL(ctx context.Context, code string) (string, error) {
 // a sensible default of 24 hours is used.
 func (g *Generator) SetURL(ctx context.Context, code string, longURL string, ttl time.Duration) error {
 	if g == nil || g.client == nil {
-			return errors.New("redisid: nil generator or client")
+		return errors.New("redisid: nil generator or client")
 	}
 	if ttl <= 0 {
 		ttl = 24 * time.Hour

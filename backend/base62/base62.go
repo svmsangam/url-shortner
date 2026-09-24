@@ -1,3 +1,5 @@
+// Package base62 provides the deterministic, URL-safe encoding used to turn
+// Redis sequence values into compact public short codes.
 package base62
 
 import (
@@ -21,6 +23,8 @@ func init() {
 
 // Encode converts a uint64 to a Base62 string using alphabet 0-9, a-z, A-Z.
 // Example: Encode(0) == "0"
+// The fixed alphabet keeps codes transport-safe without database state or
+// random generation, so decoding can validate route parameters locally.
 func Encode(u uint64) string {
 	if u == 0 {
 		return "0"
