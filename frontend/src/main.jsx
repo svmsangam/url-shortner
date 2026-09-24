@@ -1,3 +1,4 @@
+/** Browser entry point: mount the React tree and enable development checks. */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

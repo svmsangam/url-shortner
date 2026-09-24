@@ -1,3 +1,5 @@
+// Package handler translates HTTP requests into URL-shortener application
+// operations and serializes their results as REST responses.
 package handler
 
 import (
@@ -69,6 +71,8 @@ func validateLongURL(raw string) error {
 
 // NewShortenHandler returns an http.HandlerFunc that creates a short URL.
 // db: Cassandra DB wrapper; rdb: Redis client
+// Data flow: POST JSON -> URL validation -> device token + Redis ID allocation
+// -> Cassandra mapping writes -> JSON short-link response.
 func NewShortenHandler(db *store.DB, gen *redisid.Generator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

@@ -1,9 +1,14 @@
+/**
+ * App owns the client workflow: form state -> REST API -> short-link result,
+ * while RecentResults reads the device-scoped history and click analytics.
+ */
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, BarChart3, Camera, Check, Clipboard, Link2, Send } from 'lucide-react'
 import api from './api/client'
 
 const cardClass = 'rounded-xl border border-slate-200 bg-white p-6 shadow-sm'
 
+/** Create-link controller/view: user input -> POST /shorten -> shareable result. */
 function UrlForm({ longUrl, setLongUrl, shortUrl, shortCode, isSubmitting, isCopied, error, clickCount, isClickCountLoading, clickCountError, onSubmit, onCopy, onViewClicks, onCreateAnother }) {
   return (
     <section className={cardClass} aria-labelledby="create-link-title">
@@ -36,6 +41,7 @@ function UrlForm({ longUrl, setLongUrl, shortUrl, shortCode, isSubmitting, isCop
   )
 }
 
+/** History view: device token -> GET /urls -> link list -> optional click analytics. */
 function RecentResults({ refreshKey }) {
   const [recentLinks, setRecentLinks] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -138,6 +144,7 @@ function About() {
   return <footer className="mt-10 border-t border-slate-200 pt-6 text-center text-sm text-slate-500"><h2 className="text-sm font-bold text-slate-700">About</h2><p className="mx-auto mt-2 max-w-xl leading-6">A fast, stateless Go and Cassandra URL shortener built for simple, reliable sharing. No account required.</p></footer>
 }
 
+/** Root screen coordinates create-link state, results refreshes, and analytics calls. */
 function App() {
   const [longUrl, setLongUrl] = useState('')
   const [shortUrl, setShortUrl] = useState('')
@@ -150,6 +157,7 @@ function App() {
   const [clickCountError, setClickCountError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
 
+  /** Data flow: form event -> REST create request -> result state -> history refresh. */
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
@@ -179,6 +187,7 @@ function App() {
     }
   }
 
+  /** Data flow: selected short code -> analytics REST request -> click-count state. */
   async function handleViewClicks() {
     setClickCountError('')
     setIsClickCountLoading(true)
@@ -227,7 +236,7 @@ function App() {
     setClickCountError('')
   }
 
-  return <main className="min-h-screen bg-[#F8FAFC] px-4 py-10 text-[#1E293B] sm:px-6"><div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col"><h1 className="mb-10 text-center text-3xl font-extrabold tracking-tight text-[#1E293B] sm:text-4xl">URL Shortener</h1><div className="grid flex-1 items-start gap-6 lg:grid-cols-2"><UrlForm longUrl={longUrl} setLongUrl={setLongUrl} shortUrl={shortUrl} shortCode={shortCode} isSubmitting={isSubmitting} isCopied={isCopied} error={error} clickCount={clickCount} isClickCountLoading={isClickCountLoading} clickCountError={clickCountError} onSubmit={handleSubmit} onCopy={handleCopy} onViewClicks={handleViewClicks} onCreateAnother={createAnother} /><RecentResults refreshKey={refreshKey} /></div><About /></div></main>
+  return <main className="min-h-screen bg-[#F8FAFC] px-4 py-10 text-[#1E293B] sm:px-6"><div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col"><div className="mb-10 flex justify-center"><h1 className="sr-only">ShortIT - URL Shortener</h1><img src="/shortit-logo.svg" alt="ShortIT Logo" className="h-12 w-auto object-contain sm:h-16" /></div><div className="grid flex-1 items-start gap-6 lg:grid-cols-2"><UrlForm longUrl={longUrl} setLongUrl={setLongUrl} shortUrl={shortUrl} shortCode={shortCode} isSubmitting={isSubmitting} isCopied={isCopied} error={error} clickCount={clickCount} isClickCountLoading={isClickCountLoading} clickCountError={clickCountError} onSubmit={handleSubmit} onCopy={handleCopy} onViewClicks={handleViewClicks} onCreateAnother={createAnother} /><RecentResults refreshKey={refreshKey} /></div><About /></div></main>
 }
 
 export default App

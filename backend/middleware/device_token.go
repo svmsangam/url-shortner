@@ -1,3 +1,5 @@
+// Package middleware provides request guards and cross-origin transport policy
+// shared by the HTTP router and its API handlers.
 package middleware
 
 import (
@@ -49,6 +51,8 @@ func GetDeviceToken(ctx context.Context) (string, bool) {
 // If missing or not a valid UUID v4, it generates a new UUID v4, attaches
 // "X-Device-Token" to the response headers, and stores the validated token
 // in the request context for downstream handlers.
+// Data flow: client header -> UUID validation/generation -> request context
+// -> handler-scoped device ownership and response token propagation.
 func DeviceTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string

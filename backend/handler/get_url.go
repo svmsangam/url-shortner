@@ -1,3 +1,5 @@
+// Package handler contains HTTP entry points for public redirects and API
+// queries; it delegates storage and cache policy to their owning packages.
 package handler
 
 import (
@@ -29,6 +31,8 @@ type deviceURLsResponse struct {
 	TotalCount int               `json:"total_count"`
 }
 
+// Data flow: authenticated API request -> device token from context ->
+// Cassandra device index -> JSON list of links owned by that device.
 // GetDeviceURLs returns all short URLs associated with the request's device.
 func GetDeviceURLs(db *store.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +69,8 @@ func GetDeviceURLs(db *store.DB) http.HandlerFunc {
 // NewGetHandler returns an http.HandlerFunc that looks up a short code and
 // returns the corresponding long URL as JSON {"redirect_url": "..."}.
 // It implements a cache-aside pattern using redisid.Generator's cache helpers.
+// Data flow: authenticated API request -> code extraction/validation -> Redis
+// cache-aside lookup -> Cassandra fallback -> JSON redirect URL response.
 func NewGetHandler(db *store.DB, gen *redisid.Generator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, ok := middleware.GetDeviceToken(r.Context())

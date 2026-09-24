@@ -1,3 +1,5 @@
+// Package store is the Cassandra repository layer for URL mappings, device
+// ownership indexes, and click counters; handlers depend on this API, not CQL.
 package store
 
 import (
@@ -48,6 +50,8 @@ func (db *DB) Close() error {
 }
 
 // SaveURL writes the mapping into both urls and device_urls using a logged batch.
+// Data flow: validated short-link command -> primary Cassandra mapping write
+// -> asynchronous device index write, keeping the HTTP critical path bounded.
 func (s *DB) SaveURL(ctx context.Context, shortCode, longURL, deviceToken string) error {
 	if s == nil || s.session == nil {
 		return fmt.Errorf("db: nil session")
@@ -82,6 +86,8 @@ func (s *DB) SaveURL(ctx context.Context, shortCode, longURL, deviceToken string
 // CreateShortLink generates a numeric ID via Redis, encodes it as Base62 to
 // obtain a 7+ char short code, persists the mapping using SaveURL and returns
 // the URLMapping (no UUID primary key used any more).
+// Data flow: request context -> atomic Redis sequence -> Base62 code ->
+// Cassandra persistence/cache seed -> handler response model.
 func (db *DB) CreateShortLink(ctx context.Context, gen *redisid.Generator, longURL, deviceToken string) (*URLMapping, error) {
 	if db == nil || db.session == nil {
 		return nil, fmt.Errorf("db: nil session")

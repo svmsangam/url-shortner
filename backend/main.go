@@ -1,3 +1,6 @@
+// Package main assembles the URL shortener service and owns process lifecycle.
+// It configures Cassandra persistence, Redis ID/cache services, the HTTP router,
+// and graceful shutdown so request handling remains in the dedicated packages.
 package main
 
 import (
@@ -19,7 +22,9 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
+	// Startup flow: environment -> Cassandra/Redis clients -> router -> HTTP server.
+	// Shutdown flow: OS signal -> bounded server shutdown -> datastore cleanup.
+	if err := godotenv.Load(".env.example"); err != nil {
 		log.Printf("warning: could not load root .env file; using environment variables and defaults: %v", err)
 	}
 
@@ -41,8 +46,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create Cassandra session: %v", err)
 	}
-	// Ensure session is closed on exit
-	defer session.Close()
 
 	db := store.NewDB(session)
 	defer func() {

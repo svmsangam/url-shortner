@@ -1,3 +1,5 @@
+// Package handler contains HTTP entry points for public redirects and API
+// queries; it delegates storage and cache policy to their owning packages.
 package handler
 
 import (
@@ -19,6 +21,8 @@ type clickCountResponse struct {
 
 // NewGetClickCountHandler returns an http.HandlerFunc that returns the click
 // count for a short code as JSON.
+// Data flow: analytics API request -> route parameter -> Cassandra counter
+// read -> JSON click-count response.
 func NewGetClickCountHandler(db *store.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := chi.URLParam(r, "code")
