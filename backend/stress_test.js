@@ -47,7 +47,7 @@ export default function () {
   }
 
   // 2. GET: Read short URL (Tests Redis Cache first, then Cassandra miss)
-  const getRes = http.get(http.url`${BASE_URL}/${shortCode}`, params);
+  const getRes = http.get(http.url`${BASE_URL}/api/v1/urls/info/${shortCode}`, params);
   
   check(getRes, {
     'GET status is 200': (r) => r.status === 200,
